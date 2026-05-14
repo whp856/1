@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'apps.medical',
     'apps.pharmacy',
     'apps.finance',
+    'apps.ai_chat',
 ]
 
 MIDDLEWARE = [

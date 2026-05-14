@@ -13,7 +13,7 @@
   <div class="sidebar-header">
     <div class="logo">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M12 2L4 7v10l8 5 8-5V7l-8-5zm0 18.5L6 20V8.5l6-3.75 6 3.75V20l-6-1.5z"/></svg>
-      <span>HMS 医疗</span>
+      <span>医院管理系统</span>
     </div>
     <button class="sidebar-toggle" onclick="toggleSidebar()" title="折叠侧边栏">☰</button>
   </div>
@@ -49,6 +49,9 @@
     {% endif %}
 
     <li><a href="{% url 'patient_list' %}" class="{% if request.resolver_match.url_name == 'patient_list' %}active{% endif %}">👤 患者管理</a></li>
+
+    <li class="nav-section">AI助手</li>
+    <li><a href="{% url 'ai_chat' %}" class="{% if 'ai_chat' in request.resolver_match.url_name %}active{% endif %}">🤖 AI健康咨询</a></li>
 
     {% if user.is_pharmacist or user.is_admin %}
     <li class="nav-section">药房管理</li>

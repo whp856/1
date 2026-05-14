@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% block title %}AI健康咨询 - 医院管理系统{% endblock %}
+{% block header %}🤖 AI健康咨询{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+  <div class="chat-main">
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-welcome">
+        <div class="welcome-icon">🤖</div>
+        <h3>你好！我是小医 🩺</h3>
+        <p>你的AI健康助手，我可以帮你解答：</p>
+        <div class="quick-actions">
+          <button class="quick-btn" onclick="sendQuick('我最近总是头痛，可能是什么原因？')">🤕 头痛咨询</button>
+          <button class="quick-btn" onclick="sendQuick('感冒了应该吃什么药？有什么注意事项？')">😷 感冒用药</button>
+          <button class="quick-btn" onclick="sendQuick('如何通过饮食和运动改善高血压？')">❤️ 慢病管理</button>
+          <button class="quick-btn" onclick="sendQuick('儿童发烧38.5度，在家怎么处理？')">👶 儿童发热</button>
+        </div>
+        <p class="welcome-disclaimer">⚠️ AI建议仅供参考，不能替代医生面诊。紧急情况请立即就医。</p>
+      </div>
+    </div>
+
+    <div class="chat-status" id="chatStatus">
+      <span id="statusText" class="status-connecting">🔗 正在连接AI服务...</span>
+    </div>
+
+    <div class="chat-input-area">
+      <div class="chat-input-wrapper">
+        <textarea id="chatInput" class="chat-input" placeholder="请输入你的健康问题... (Enter发送, Shift+Enter换行)" rows="1" onkeydown="handleKeyDown(event)"></textarea>
+        <button id="sendBtn" class="btn btn-primary btn-send" onclick="sendMessage()" title="发送 (Enter)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+      <button id="stopBtn" class="btn btn-danger btn-stop" style="display:none" onclick="stopGeneration()">⏹ 停止生成</button>
+    </div>
+  </div>
+
+  <div class="chat-sidebar">
+    <div class="card">
+      <div class="card-header">💡 使用提示</div>
+      <div class="card-body">
+        <ul class="tips-list">
+          <li>详细描述症状、持续时间</li>
+          <li>可告知年龄、性别、既往病史</li>
+          <li>药物咨询请说明药品名称</li>
+          <li>紧急症状请立即就医</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">📋 咨询记录</div>
+      <div class="card-body" id="historyList">
+        <p class="text-muted">暂无咨询记录</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var abortController = null;
+var currentAssistantBubble = null;
+var chatHistory = [];
+var messageCount = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+  checkHealth();
+  document.getElementById('chatInput').focus();
+  loadLocalHistory();
+});
+
+function checkHealth() {
+  fetch('/ai-chat/api/health/')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var statusEl = document.getElementById('statusText');
+      if (data.ollama_running && data.model_available) {
+        statusEl.className = 'status-ready';
+        statusEl.textContent = '✅ AI就绪 (模型: ' + data.model + ')';
+      } else if (data.ollama_running) {
+        statusEl.className = 'status-warning';
+        statusEl.textContent = '⚠ Ollama已运行，但模型 ' + data.model + ' 未安装，请执行: ollama pull ' + data.model;
+      } else {
+        statusEl.className = 'status-error';
+        statusEl.textContent = '❌ 未检测到Ollama服务，请先启动: ollama serve';
+      }
+    })
+    .catch(function() {
+      var statusEl = document.getElementById('statusText');
+      statusEl.className = 'status-error';
+      statusEl.textContent = '❌ 无法连接AI服务';
+    });
+}
+
+function sendQuick(text) {
+  document.getElementById('chatInput').value = text;
+  sendMessage();
+}
+
+function handleKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function sendMessage() {
+  var input = document.getElementById('chatInput');
+  var text = input.value.trim();
+  if (!text) return;
+
+  messageCount++;
+  var welcome = document.querySelector('.chat-welcome');
+  if (welcome) welcome.remove();
+
+  appendMessage('user', text);
+  chatHistory.push({role: 'user', content: text});
+  saveLocalHistory();
+  input.value = '';
+  input.style.height = 'auto';
+
+  var assistantBubble = appendMessage('assistant', '');
+  currentAssistantBubble = assistantBubble;
+  showStopButton(true);
+
+  var payload = {
+    messages: chatHistory.slice(-20),
+    stream: true
+  };
+
+  abortController = new AbortController();
+
+  fetch('/ai-chat/api/chat/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
+    body: JSON.stringify(payload),
+    signal: abortController.signal,
+  })
+  .then(function(response) {
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    return readStream(response);
+  })
+  .then(function(fullContent) {
+    if (fullContent) {
+      chatHistory.push({role: 'assistant', content: fullContent});
+      saveLocalHistory();
+    }
+    finishStreaming();
+  })
+  .catch(function(err) {
+    if (err.name === 'AbortError') {
+      var bubble = currentAssistantBubble;
+      if (bubble && bubble.querySelector('.msg-content').textContent.trim() === '') {
+        bubble.querySelector('.msg-content').innerHTML = '<em class="text-muted">生成已取消</em>';
+      }
+      finishStreaming();
+      return;
+    }
+    var bubble = currentAssistantBubble;
+    if (bubble) {
+      bubble.querySelector('.msg-content').innerHTML = '<span class="text-danger">❌ 请求失败: ' + err.message + '</span>';
+    }
+    finishStreaming();
+  });
+
+  scrollToBottom();
+}
+
+function readStream(response) {
+  var reader = response.body.getReader();
+  var decoder = new TextDecoder();
+  var fullContent = '';
+  var buffer = '';
+
+  return reader.read().then(function processChunk(result) {
+    if (result.done) return fullContent;
+
+    buffer += decoder.decode(result.value, {stream: true});
+    var lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line || !line.startsWith('data: ')) continue;
+      var dataStr = line.slice(6);
+      if (dataStr === '[DONE]') return fullContent;
+
+      try {
+        var data = JSON.parse(dataStr);
+        if (data.error) {
+          var bubble = currentAssistantBubble;
+          if (bubble) bubble.querySelector('.msg-content').innerHTML = '<span class="text-danger">❌ ' + data.error + '</span>';
+          return fullContent;
+        }
+        if (data.content) {
+          fullContent += data.content;
+          if (currentAssistantBubble) {
+            currentAssistantBubble.querySelector('.msg-content').innerHTML = renderMarkdown(fullContent);
+            scrollToBottom();
+          }
+        }
+      } catch(e) {}
+    }
+    return reader.read().then(processChunk);
+  });
+}
+
+function stopGeneration() {
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
+}
+
+function finishStreaming() {
+  currentAssistantBubble = null;
+  abortController = null;
+  showStopButton(false);
+  document.getElementById('chatInput').focus();
+  updateHistorySidebar();
+}
+
+function showStopButton(show) {
+  document.getElementById('sendBtn').style.display = show ? 'none' : 'flex';
+  document.getElementById('stopBtn').style.display = show ? 'inline-flex' : 'none';
+}
+
+function appendMessage(role, content) {
+  var container = document.createElement('div');
+  container.className = 'chat-message chat-' + role;
+
+  var avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = role === 'user' ? '👤' : '🤖';
+
+  var body = document.createElement('div');
+  body.className = 'msg-body';
+
+  var label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = role === 'user' ? '你' : '小医';
+
+  var contentDiv = document.createElement('div');
+  contentDiv.className = 'msg-content';
+  if (role === 'user') {
+    contentDiv.textContent = content;
+  } else {
+    contentDiv.innerHTML = '<span class="typing-indicator"><span></span><span></span><span></span></span>';
+  }
+
+  body.appendChild(label);
+  body.appendChild(contentDiv);
+  container.appendChild(avatar);
+  container.appendChild(body);
+
+  document.getElementById('chatMessages').appendChild(container);
+  return container;
+}
+
+function scrollToBottom() {
+  var el = document.getElementById('chatMessages');
+  el.scrollTop = el.scrollHeight;
+}
+
+function getCsrf() {
+  var cookie = document.cookie.split(';').find(function(c) { return c.trim().startsWith('csrftoken='); });
+  return cookie ? cookie.split('=')[1] : '';
+}
+
+/* ===== 轻量级 Markdown 渲染 ===== */
+function renderMarkdown(text) {
+  var escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  escaped = escaped.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  escaped = escaped.replace(/`{3}(\w*)\n?([\s\S]*?)`{3}/g, '<pre><code>$2</code></pre>');
+  escaped = escaped.replace(/`([^`]+)`/g, '<code>$1</code>');
+  escaped = escaped.replace(/^### (.+)$/gm, '<h4>$1</h4>');
+  escaped = escaped.replace(/^## (.+)$/gm, '<h3>$1</h3>');
+  escaped = escaped.replace(/^# (.+)$/gm, '<h2>$1</h2>');
+  escaped = escaped.replace(/^- (.+)$/gm, '<li>$1</li>');
+  escaped = escaped.replace(/(<li>.*<\/li>)/s, function(m) { return '<ul>' + m + '</ul>'; });
+  escaped = escaped.replace(/<\/li>\n<li>/g, '</li><li>');
+  escaped = escaped.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+  escaped = escaped.replace(/---+/g, '<hr>');
+  escaped = escaped.replace(/\n\n/g, '</p><p>');
+  escaped = escaped.replace(/\n/g, '<br>');
+  escaped = '<p>' + escaped + '</p>';
+  escaped = escaped.replace(/<p><\/p>/g, '');
+
+  return escaped;
+}
+
+/* ===== 本地历史记录 ===== */
+function saveLocalHistory() {
+  try {
+    localStorage.setItem('hms_chat_history', JSON.stringify(chatHistory.slice(-50)));
+  } catch(e) {}
+}
+
+function loadLocalHistory() {
+  try {
+    var saved = localStorage.getItem('hms_chat_history');
+    if (saved) {
+      chatHistory = JSON.parse(saved);
+      if (chatHistory.length > 0) {
+        var welcome = document.querySelector('.chat-welcome');
+        if (welcome) welcome.remove();
+        for (var i = 0; i < chatHistory.length; i++) {
+          var msg = chatHistory[i];
+          var bubble = appendMessage(msg.role, '');
+          if (msg.role === 'user') {
+            bubble.querySelector('.msg-content').textContent = msg.content;
+          } else {
+            bubble.querySelector('.msg-content').innerHTML = renderMarkdown(msg.content);
+          }
+        }
+        scrollToBottom();
+        updateHistorySidebar();
+        messageCount = chatHistory.length;
+      }
+    }
+  } catch(e) {}
+}
+
+function updateHistorySidebar() {
+  var list = document.getElementById('historyList');
+  if (chatHistory.length === 0) {
+    list.innerHTML = '<p class="text-muted">暂无咨询记录</p>';
+    return;
+  }
+  var users = chatHistory.filter(function(m) { return m.role === 'user'; });
+  var html = '';
+  for (var i = users.length - 1; i >= Math.max(0, users.length - 8); i--) {
+    var preview = users[i].content.substring(0, 30);
+    html += '<div class="history-item" onclick="scrollToHistory(' + i + ')">' + preview + (users[i].content.length > 30 ? '...' : '') + '</div>';
+  }
+  list.innerHTML = html || '<p class="text-muted">暂无咨询记录</p>';
+}
+</script>
+{% endblock %}

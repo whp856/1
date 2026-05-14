@@ -10,4 +10,5 @@ urlpatterns = [
     path('medical/', include('apps.medical.urls')),
     path('pharmacy/', include('apps.pharmacy.urls')),
     path('finance/', include('apps.finance.urls')),
+    path('ai-chat/', include('apps.ai_chat.urls')),
 ]
