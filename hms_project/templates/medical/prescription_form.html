@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}开具处方 - 医院管理系统{% endblock %}
+{% block header %}开具处方 - {{ appointment.patient.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <div class="prescription-info">
+      <span>患者: <strong>{{ appointment.patient.name }}</strong></span>
+      <span>处方号: #{{ prescription.id }}</span>
+      <span>总金额: <strong id="totalAmount">¥{{ prescription.total_amount }}</strong></span>
+      <span>状态: <span class="badge badge-{{ prescription.status }}">{{ prescription.get_status_display }}</span></span>
+    </div>
+
+    <div class="prescription-items card" style="margin-top:16px;">
+      <div class="card-header">处方明细</div>
+      <div class="card-body">
+        <table class="hms-table" id="prescriptionItems">
+          <thead><tr><th>药品</th><th>规格</th><th>数量</th><th>用法用量</th><th>单价</th><th>小计</th><th>操作</th></tr></thead>
+          <tbody>
+            {% for item in prescription.items.all %}
+            <tr data-id="{{ item.id }}">
+              <td>{{ item.medicine.name }}</td>
+              <td>{{ item.medicine.specification }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ item.dosage }}</td>
+              <td>¥{{ item.unit_price }}</td>
+              <td>¥{{ item.subtotal }}</td>
+              <td>
+                {% if prescription.status == 'pending' %}
+                <button class="btn btn-sm btn-danger" onclick="deleteItem({{ item.id }})">删除</button>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr id="emptyRow"><td colspan="7" class="text-muted">暂未添加药品</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if prescription.status == 'pending' %}
+    <div class="card" style="margin-top:16px;">
+      <div class="card-header">添加药品</div>
+      <div class="card-body">
+        <div class="medicine-search">
+          <input type="text" id="medicineSearch" class="hms-input" placeholder="搜索药品名称/拼音首字母..." oninput="searchMedicine()">
+          <div id="medicineResults" class="search-results"></div>
+        </div>
+        <form id="addItemForm" class="hms-form" style="display:none;">
+          <input type="hidden" id="selectedMedicineId">
+          <div class="form-row">
+            <div class="form-group"><label>药品</label><input type="text" id="selectedMedicineName" class="hms-input" readonly></div>
+            <div class="form-group"><label>数量</label><input type="number" id="addQuantity" class="hms-input" min="1" value="1"></div>
+          </div>
+          <div class="form-group"><label>用法用量</label><input type="text" id="addDosage" class="hms-input" placeholder="如: 每日3次,每次1片"></div>
+          <button type="button" class="btn btn-primary" onclick="addItem()">添加</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="form-actions" style="margin-top:16px;">
+      <form method="post" action="{% url 'prescription_submit' prescription.id %}" style="display:inline">
+        {% csrf_token %}<button type="submit" class="btn btn-success btn-lg" {% if not prescription.items.exists %}disabled{% endif %}>📤 提交处方至药房</button>
+      </form>
+      <a href="{% url 'doctor_workbench' %}?appointment_id={{ appointment.id }}" class="btn btn-secondary">返回工作台</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var prescriptionId = {{ prescription.id }};
+
+function searchMedicine() {
+  var q = document.getElementById('medicineSearch').value.trim();
+  var resultsDiv = document.getElementById('medicineResults');
+  if (q.length < 1) { resultsDiv.style.display = 'none'; return; }
+  fetch('/medical/api/medicine-search/?q=' + encodeURIComponent(q))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.medicines.length === 0) { resultsDiv.innerHTML = '<div class="no-result">未找到药品</div>'; resultsDiv.style.display = 'block'; return; }
+      var html = '';
+      data.medicines.forEach(function(m) {
+        html += '<div class="search-item" onclick="selectMedicine(' + m.id + ', \'' + m.name + ' ' + m.specification + '\', ' + m.unit_price + ', ' + m.stock_quantity + ')">' +
+          '<strong>' + m.name + '</strong> ' + m.specification + ' ¥' + m.unit_price + ' 库存:' + m.stock_quantity + '</div>';
+      });
+      resultsDiv.innerHTML = html;
+      resultsDiv.style.display = 'block';
+    });
+}
+
+function selectMedicine(id, name, price, stock) {
+  document.getElementById('selectedMedicineId').value = id;
+  document.getElementById('selectedMedicineName').value = name + ' (库存:' + stock + ')';
+  document.getElementById('addQuantity').max = stock;
+  document.getElementById('addItemForm').style.display = 'block';
+  document.getElementById('medicineResults').style.display = 'none';
+  document.getElementById('medicineSearch').value = name;
+}
+
+function addItem() {
+  var formData = new FormData();
+  formData.append('medicine', document.getElementById('selectedMedicineId').value);
+  formData.append('quantity', document.getElementById('addQuantity').value);
+  formData.append('dosage', document.getElementById('addDosage').value);
+  fetch('/medical/prescription/' + prescriptionId + '/item/add/', {method:'POST', body:formData, headers:{'X-CSRFToken':'{{ csrf_token }}'}})
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) { alert(data.error); return; }
+      location.reload();
+    });
+}
+
+function deleteItem(itemId) {
+  if (!confirm('确认删除该处方项?')) return;
+  fetch('/medical/prescription/item/' + itemId + '/delete/', {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}})
+    .then(function(r) { return r.json(); })
+    .then(function(data) { if (data.success) location.reload(); });
+}
+</script>
+{% endblock %}

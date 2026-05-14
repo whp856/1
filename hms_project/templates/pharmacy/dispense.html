@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}发药工作台 - 医院管理系统{% endblock %}
+{% block header %}发药工作台{% endblock %}
+
+{% block content %}
+<div class="workbench-layout">
+  <div class="wb-sidebar">
+    <div class="card">
+      <div class="card-header">待发药处方</div>
+      <div class="card-body wb-patient-list">
+        {% for p in paid_prescriptions %}
+        <a href="?prescription_id={{ p.id }}" class="wb-patient-item {% if current_prescription and current_prescription.id == p.id %}active{% endif %}">
+          <div><div class="wb-patient-name">#{{ p.id }} {{ p.patient.name }}</div>
+          <div class="wb-patient-meta">¥{{ p.total_amount }} | {{ p.payment_time|date:'H:i' }}</div></div>
+        </a>
+        {% empty %}<p class="text-muted" style="padding:16px;">暂无待发药处方</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="wb-content">
+    {% if current_prescription %}
+    <div class="card">
+      <div class="card-header">处方 #{{ current_prescription.id }} | 患者: {{ current_prescription.patient.name }}</div>
+      <div class="card-body">
+        <dl class="info-list">
+          <dt>患者</dt><dd>{{ current_prescription.patient.name }}</dd>
+          <dt>医生</dt><dd>{{ current_prescription.doctor.full_name }}</dd>
+          <dt>金额</dt><dd><strong>¥{{ current_prescription.total_amount }}</strong></dd>
+        </dl>
+
+        {% if items %}
+        <table class="hms-table">
+          <thead><tr><th>药品</th><th>规格</th><th>数量</th><th>用法用量</th><th>库存</th></tr></thead>
+          <tbody>
+          {% for item in items %}
+          <tr class="{% if item.quantity > item.medicine.stock_quantity %}row-danger{% endif %}">
+            <td>{{ item.medicine.name }}</td><td>{{ item.medicine.specification }}</td>
+            <td>{{ item.quantity }}</td><td>{{ item.dosage }}</td>
+            <td><span class="{% if item.quantity > item.medicine.stock_quantity %}text-danger{% endif %}">{{ item.medicine.stock_quantity }}</span></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+
+        <div class="form-actions" style="margin-top:16px;">
+          <form method="post" action="{% url 'dispense_confirm' current_prescription.id %}" style="display:inline" onsubmit="return confirm('确认发药? 系统将扣减药品库存。')">
+            {% csrf_token %}<button type="submit" class="btn btn-success btn-lg">✅ 确认发药</button>
+          </form>
+          <form method="post" action="{% url 'prescription_reject' current_prescription.id %}" style="display:inline" onsubmit="return confirm('确认驳回该处方?')">
+            {% csrf_token %}
+            <input type="text" name="reject_note" class="hms-input" placeholder="驳回原因" required style="width:200px;">
+            <button type="submit" class="btn btn-danger">❌ 驳回处方</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">👈 请从左侧列表选择待发药处方</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

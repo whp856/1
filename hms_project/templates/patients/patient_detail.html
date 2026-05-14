@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}{{ patient.name }} - 患者详情{% endblock %}
+{% block header %}患者详情{% endblock %}
+{% block header_actions %}
+{% if user.is_admin %}<a href="{% url 'patient_edit' patient.pk %}" class="btn btn-secondary">编辑档案</a>{% endif %}
+<a href="{% url 'patient_list' %}" class="btn btn-secondary">返回列表</a>
+{% endblock %}
+
+{% block content %}
+<div class="detail-grid">
+  <div class="card">
+    <div class="card-header">基本信息</div>
+    <div class="card-body">
+      <dl class="info-list">
+        <dt>姓名</dt><dd>{{ patient.name }}</dd>
+        <dt>身份证号</dt><dd>{{ patient.id_card }}</dd>
+        <dt>性别</dt><dd>{{ patient.get_gender_display }}</dd>
+        <dt>年龄</dt><dd>{{ patient.age }}岁</dd>
+        <dt>联系电话</dt><dd>{{ patient.phone }}</dd>
+        <dt>过敏史</dt><dd class="text-danger">{{ patient.allergy_history|default:'无' }}</dd>
+        <dt>建档时间</dt><dd>{{ patient.created_at|date:'Y-m-d H:i' }}</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">挂号记录 (最近20条)</div>
+    <div class="card-body">
+      <table class="hms-table compact">
+        <thead><tr><th>日期</th><th>科室</th><th>医生</th><th>状态</th></tr></thead>
+        <tbody>
+          {% for apt in appointments %}
+          <tr>
+            <td>{{ apt.appointment_date|date:'Y-m-d' }} {{ apt.appointment_time|time:'H:i' }}</td>
+            <td>{{ apt.department.name }}</td>
+            <td>{{ apt.doctor.full_name }}</td>
+            <td><span class="badge badge-{{ apt.status }}">{{ apt.get_status_display }}</span></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted">暂无挂号记录</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">诊疗记录 (最近10条)</div>
+    <div class="card-body">
+      {% for rec in records %}
+      <div class="record-item">
+        <div class="record-header">
+          <span>{{ rec.created_at|date:'Y-m-d H:i' }}</span>
+          <span>医生: {{ rec.doctor.full_name }}</span>
+        </div>
+        <div><strong>诊断:</strong> {{ rec.diagnosis }}</div>
+        {% if rec.treatment_plan %}<div><strong>方案:</strong> {{ rec.treatment_plan }}</div>{% endif %}
+      </div>
+      {% empty %}
+      <p class="text-muted">暂无诊疗记录</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

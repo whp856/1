@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}药品目录 - 医院管理系统{% endblock %}
+{% block header %}药品目录{% endblock %}
+{% block header_actions %}
+{% if user.is_pharmacist or user.is_admin %}<a href="{% url 'medicine_create' %}" class="btn btn-primary">+ 添加药品</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header filter-bar">
+    <form method="get" class="filter-form">
+      <input type="text" name="search" class="hms-input" placeholder="搜索药品/拼音码..." value="{{ search }}">
+      <select name="category" class="hms-select" onchange="this.form.submit()">
+        <option value="">全部分类</option>
+        {% for val, label in categories %}
+        <option value="{{ val }}" {% if category == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="stock_alert" class="hms-select" onchange="this.form.submit()">
+        <option value="">全部库存</option>
+        <option value="low" {% if stock_alert == 'low' %}selected{% endif %}>库存不足</option>
+        <option value="expiring" {% if stock_alert == 'expiring' %}selected{% endif %}>即将过期</option>
+      </select>
+      <button type="submit" class="btn btn-secondary">搜索</button>
+    </form>
+  </div>
+  <div class="card-body">
+    <table class="hms-table">
+      <thead><tr><th>药品名称</th><th>规格</th><th>分类</th><th>厂家</th><th>单价</th><th>库存</th><th>有效期</th><th>状态</th>{% if user.is_pharmacist or user.is_admin %}<th>操作</th>{% endif %}</tr></thead>
+      <tbody>
+        {% for m in medicines %}
+        <tr class="{% if m.is_low_stock %}row-warning{% endif %} {% if m.is_expired %}row-danger{% endif %}">
+          <td><strong>{{ m.name }}</strong><br><small class="text-muted">{{ m.pinyin_code }}</small></td>
+          <td>{{ m.specification }}</td>
+          <td>{{ m.get_category_display }}</td>
+          <td>{{ m.manufacturer }}</td>
+          <td>¥{{ m.unit_price }}</td>
+          <td><span class="{% if m.is_low_stock %}text-danger{% endif %}">{{ m.stock_quantity }}</span></td>
+          <td><span class="{% if m.is_expiring_soon %}text-warning{% endif %}{% if m.is_expired %}text-danger{% endif %}">{{ m.expiry_date|date:'Y-m-d' }}</span></td>
+          <td>
+            {% if m.is_expired %}<span class="badge badge-danger">已过期</span>
+            {% elif m.is_low_stock %}<span class="badge badge-warning">库存不足</span>
+            {% elif m.is_expiring_soon %}<span class="badge badge-warning">即将过期</span>
+            {% else %}<span class="badge badge-success">正常</span>{% endif %}
+          </td>
+          {% if user.is_pharmacist or user.is_admin %}
+          <td><a href="{% url 'medicine_edit' m.pk %}" class="btn btn-sm btn-secondary">编辑</a></td>
+          {% endif %}
+        </tr>
+        {% empty %}<tr><td colspan="9" class="text-muted">暂无药品数据</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

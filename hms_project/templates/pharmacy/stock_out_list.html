@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}出库记录 - 医院管理系统{% endblock %}
+{% block header %}出库记录{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header filter-bar">
+    <form method="get" class="filter-form">
+      <input type="text" name="search" class="hms-input" placeholder="搜索药品名称..." value="{{ search }}">
+      <button type="submit" class="btn btn-secondary">搜索</button>
+    </form>
+  </div>
+  <div class="card-body">
+    <table class="hms-table">
+      <thead><tr><th>药品</th><th>数量</th><th>关联处方</th><th>操作人</th><th>时间</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td>{{ r.medicine.name }}</td><td>{{ r.quantity }}</td>
+          <td>{% if r.prescription %}<a href="{% url 'prescription_detail' r.prescription_id %}">#{{ r.prescription_id }}</a>{% else %}-{% endif %}</td>
+          <td>{{ r.operator.full_name }}</td><td>{{ r.created_at|date:'Y-m-d H:i' }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="5" class="text-muted">暂无出库记录</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

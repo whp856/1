@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}排班管理 - 医院管理系统{% endblock %}
+{% block header %}排班管理{% endblock %}
+{% block header_actions %}<a href="{% url 'schedule_create' %}" class="btn btn-primary">+ 新建排班</a>{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header filter-bar">
+    <form method="get" class="filter-form">
+      <input type="date" name="date" class="hms-input" value="{{ date_filter }}" onchange="this.form.submit()">
+      <select name="doctor" class="hms-select" onchange="this.form.submit()">
+        <option value="">全部医生</option>
+        {% for d in doctors %}
+        <option value="{{ d.pk }}" {% if doctor_filter == d.pk|stringformat:'s' %}selected{% endif %}>{{ d.full_name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-secondary">筛选</button>
+    </form>
+  </div>
+  <div class="card-body">
+    <table class="hms-table">
+      <thead><tr><th>医生</th><th>日期</th><th>号源</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for s in schedules %}
+        <tr>
+          <td>{{ s.doctor.full_name }}</td>
+          <td>{{ s.date|date:'Y-m-d' }}</td>
+          <td>{{ s.current_patients }} / {{ s.max_patients }}</td>
+          <td><span class="badge {% if s.is_available %}badge-success{% else %}badge-danger{% endif %}">{{ s.is_available|yesno:'开放,停诊' }}</span></td>
+          <td class="actions">
+            <a href="{% url 'schedule_edit' s.pk %}" class="btn btn-sm btn-secondary">编辑</a>
+            <form method="post" action="{% url 'schedule_toggle' s.pk %}" style="display:inline">
+              {% csrf_token %}<button type="submit" class="btn btn-sm {% if s.is_available %}btn-danger{% else %}btn-success{% endif %}">{{ s.is_available|yesno:'停诊,开放' }}</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}<tr><td colspan="5" class="text-center text-muted">暂无排班数据</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

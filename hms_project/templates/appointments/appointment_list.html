@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}挂号管理 - 医院管理系统{% endblock %}
+{% block header %}挂号管理{% endblock %}
+{% block header_actions %}
+{% if user.is_admin or user.is_nurse %}<a href="{% url 'appointment_create' %}" class="btn btn-primary">+ 新建挂号</a>{% endif %}
+{% if user.is_doctor %}<a href="{% url 'doctor_queue' %}" class="btn btn-secondary">叫号队列</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header filter-bar">
+    <form method="get" class="filter-form">
+      <select name="status" class="hms-select" onchange="this.form.submit()">
+        <option value="">全部状态</option>
+        {% for val, label in status_choices %}
+        <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <input type="date" name="date" class="hms-input" value="{{ date_filter }}" onchange="this.form.submit()">
+      {% if user.is_admin %}
+      <select name="doctor" class="hms-select" onchange="this.form.submit()">
+        <option value="">全部医生</option>
+        {% for d in doctors %}
+        <option value="{{ d.pk }}" {% if doctor_filter == d.pk|stringformat:'s' %}selected{% endif %}>{{ d.full_name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <input type="text" name="search" class="hms-input" placeholder="搜索患者姓名/电话" value="{{ search }}">
+      <button type="submit" class="btn btn-secondary">搜索</button>
+    </form>
+  </div>
+  <div class="card-body">
+    <table class="hms-table">
+      <thead><tr><th>挂号单号</th><th>患者</th><th>科室</th><th>医生</th><th>日期</th><th>时段</th><th>费用</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for apt in appointments %}
+        <tr>
+          <td>#{{ apt.id }}</td>
+          <td><a href="{% url 'patient_detail' apt.patient_id %}">{{ apt.patient.name }}</a></td>
+          <td>{{ apt.department.name }}</td>
+          <td>{{ apt.doctor.full_name }}</td>
+          <td>{{ apt.appointment_date|date:'Y-m-d' }}</td>
+          <td>{{ apt.appointment_time|time:'H:i' }}</td>
+          <td>¥{{ apt.fee }}</td>
+          <td><span class="badge badge-{{ apt.status }}">{{ apt.get_status_display }}</span></td>
+          <td class="actions">
+            {% if apt.status == 'pending' %}
+            {% if user.is_admin or user.is_nurse %}
+            {% if not apt.payment_status %}
+            <form method="post" action="{% url 'appointment_payment' apt.pk %}" style="display:inline">
+              {% csrf_token %}
+              <select name="payment_method" class="hms-select-sm">
+                <option value="cash">现金</option><option value="wechat">微信</option><option value="alipay">支付宝</option>
+              </select>
+              <button type="submit" class="btn btn-sm btn-success">收款</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'appointment_cancel' apt.pk %}" style="display:inline" onsubmit="return confirm('确认取消该挂号?')">
+              {% csrf_token %}<button type="submit" class="btn btn-sm btn-danger">取消</button>
+            </form>
+            {% endif %}
+            {% endif %}
+            {% if user.is_doctor and apt.doctor_id == user.id and apt.status == 'pending' %}
+            <a href="{% url 'doctor_workbench' %}?appointment_id={{ apt.id }}" class="btn btn-sm btn-primary">接诊</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="text-center text-muted">暂无挂号记录</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

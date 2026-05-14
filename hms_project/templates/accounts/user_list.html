@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}用户管理 - 医院管理系统{% endblock %}
+{% block header %}用户管理{% endblock %}
+{% block header_actions %}
+<a href="{% url 'user_create' %}" class="btn btn-primary">+ 新建用户</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header filter-bar">
+    <form method="get" class="filter-form">
+      <select name="role" class="hms-select" onchange="this.form.submit()">
+        <option value="">全部角色</option>
+        {% for val, label in role_choices %}
+        <option value="{{ val }}" {% if role_filter == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="search" class="hms-input" placeholder="搜索用户名/姓名/手机号" value="{{ search }}">
+      <button type="submit" class="btn btn-secondary">搜索</button>
+    </form>
+  </div>
+  <div class="card-body">
+    <table class="hms-table">
+      <thead>
+        <tr>
+          <th>用户名</th><th>姓名</th><th>角色</th><th>科室</th><th>电话</th><th>状态</th><th>创建时间</th><th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.username }}</td>
+          <td>{{ u.full_name }}</td>
+          <td><span class="badge badge-{{ u.role }}">{{ u.get_role_display }}</span></td>
+          <td>{{ u.department.name|default:'-' }}</td>
+          <td>{{ u.phone|default:'-' }}</td>
+          <td>
+            <span class="status-dot {% if u.is_active %}status-active{% else %}status-inactive{% endif %}"></span>
+            {{ u.is_active|yesno:'启用,禁用' }}
+          </td>
+          <td>{{ u.date_joined|date:'Y-m-d' }}</td>
+          <td class="actions">
+            <a href="{% url 'user_edit' u.pk %}" class="btn btn-sm btn-secondary">编辑</a>
+            <form method="post" action="{% url 'user_toggle_active' u.pk %}" style="display:inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm {% if u.is_active %}btn-danger{% else %}btn-success{% endif %}" onclick="return confirm('确认{{ u.is_active|yesno:'禁用,启用' }}该用户?')">
+                {{ u.is_active|yesno:'禁用,启用' }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted">暂无用户数据</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

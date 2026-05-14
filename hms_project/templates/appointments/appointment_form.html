@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }} - 医院管理系统{% endblock %}
+{% block header %}{{ action }}{% endblock %}
+
+{% block content %}
+<div class="card form-card">
+  <div class="card-body">
+    <form method="post" class="hms-form" id="appointmentForm" novalidate>
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group">
+          <label>患者搜索</label>
+          <input type="text" id="patientSearch" class="hms-input" placeholder="输入姓名/身份证号/手机号搜索...">
+          <div id="patientSearchResults" class="search-results"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.patient.id_for_label }}">{{ form.patient.label }} <span class="required">*</span></label>
+          {{ form.patient }}
+          {% if form.patient.errors %}<span class="field-error">{{ form.patient.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+          {{ form.department }}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.doctor.id_for_label }}">{{ form.doctor.label }} <span class="required">*</span></label>
+          {{ form.doctor }}
+          {% if form.doctor.errors %}<span class="field-error">{{ form.doctor.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.appointment_date.id_for_label }}">{{ form.appointment_date.label }} <span class="required">*</span></label>
+          {{ form.appointment_date }}
+          {% if form.appointment_date.errors %}<span class="field-error">{{ form.appointment_date.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.appointment_time.id_for_label }}">{{ form.appointment_time.label }} <span class="required">*</span></label>
+          {{ form.appointment_time }}
+          {% if form.appointment_time.errors %}<span class="field-error">{{ form.appointment_time.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.fee.id_for_label }}">{{ form.fee.label }}</label>
+          {{ form.fee }}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.payment_method.id_for_label }}">{{ form.payment_method.label }}</label>
+          {{ form.payment_method }}
+        </div>
+      </div>
+      <div class="schedule-info" id="scheduleInfo"></div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">确认挂号</button>
+        <a href="{% url 'appointment_list' %}" class="btn btn-secondary">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var searchInput = document.getElementById('patientSearch');
+  var resultsDiv = document.getElementById('patientSearchResults');
+  var patientSelect = document.querySelector('[name="patient"]');
+  var doctorSelect = document.querySelector('[name="doctor"]');
+  var dateInput = document.querySelector('[name="appointment_date"]');
+  var scheduleInfo = document.getElementById('scheduleInfo');
+  var timer;
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      clearTimeout(timer);
+      var q = this.value.trim();
+      if (q.length < 2) { resultsDiv.innerHTML = ''; resultsDiv.style.display = 'none'; return; }
+      timer = setTimeout(function() {
+        fetch('/patients/api/search/?q=' + encodeURIComponent(q))
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.patients.length === 0) { resultsDiv.innerHTML = '<div class="no-result">未找到患者，请先<a href="/patients/create/">新建档案</a></div>'; resultsDiv.style.display = 'block'; return; }
+            var html = '';
+            data.patients.forEach(function(p) {
+              html += '<div class="search-item" onclick="selectPatient(' + p.id + ', \'' + p.name + '\')">' +
+                '<strong>' + p.name + '</strong> ' + p.gender + ' ' + p.age + '岁 ' + p.id_card + '</div>';
+            });
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+          });
+      }, 300);
+    });
+  }
+
+  window.selectPatient = function(id, name) {
+    patientSelect.value = id;
+    searchInput.value = name;
+    resultsDiv.style.display = 'none';
+  };
+
+  function checkSchedule() {
+    var doctorId = doctorSelect ? doctorSelect.value : '';
+    var dateVal = dateInput ? dateInput.value : '';
+    if (!doctorId || !dateVal) { scheduleInfo.innerHTML = ''; return; }
+    fetch('/appointments/api/doctor-schedule/?doctor_id=' + doctorId + '&date=' + dateVal)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        scheduleInfo.innerHTML = '<div class="schedule-detail">号源: ' + data.remaining + '/' + data.max_patients +
+          ' (剩余' + data.remaining + '个) | ' + (data.is_available ? '可挂号' : '已暂停') + '</div>';
+      });
+  }
+
+  if (doctorSelect) doctorSelect.addEventListener('change', checkSchedule);
+  if (dateInput) dateInput.addEventListener('change', checkSchedule);
+});
+</script>
+{% endblock %}

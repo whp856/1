@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}发药统计 - 医院管理系统{% endblock %}
+{% block header %}发药统计{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header filter-bar">
+    <form method="get" class="filter-form">
+      <select name="period" class="hms-select" onchange="this.form.submit()">
+        <option value="today" {% if period == 'today' %}selected{% endif %}>今日</option>
+        <option value="week" {% if period == 'week' %}selected{% endif %}>本周</option>
+        <option value="month" {% if period == 'month' %}selected{% endif %}>本月</option>
+      </select>
+    </form>
+  </div>
+  <div class="card-body">
+    <div class="card-row">
+      <div class="card"><div class="card-header">药剂师发药排行</div><div class="card-body">
+        <table class="hms-table compact">
+          <thead><tr><th>药剂师</th><th>发药次数</th><th>总金额</th></tr></thead>
+          <tbody>
+            {% for p in pharmacist_stats %}
+            <tr><td>{{ p.pharmacist__full_name }}</td><td>{{ p.count }}</td><td>¥{{ p.total_amount }}</td></tr>
+            {% empty %}<tr><td colspan="3" class="text-muted">暂无数据</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div></div>
+      <div class="card"><div class="card-header">药品销售排行</div><div class="card-body">
+        <table class="hms-table compact">
+          <thead><tr><th>药品</th><th>规格</th><th>数量</th><th>金额</th></tr></thead>
+          <tbody>
+            {% for m in medicine_stats %}
+            <tr><td>{{ m.medicine__name }}</td><td>{{ m.medicine__specification }}</td><td>{{ m.total_quantity }}</td><td>¥{{ m.total_amount }}</td></tr>
+            {% empty %}<tr><td colspan="4" class="text-muted">暂无数据</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

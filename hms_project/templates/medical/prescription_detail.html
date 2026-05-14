@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}处方详情 #{{ prescription.id }} - 医院管理系统{% endblock %}
+{% block header %}处方详情 #{{ prescription.id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <dl class="info-list">
+      <dt>处方号</dt><dd>#{{ prescription.id }}</dd>
+      <dt>患者</dt><dd>{{ prescription.patient.name }}</dd>
+      <dt>开方医生</dt><dd>{{ prescription.doctor.full_name }}</dd>
+      <dt>总金额</dt><dd><strong>¥{{ prescription.total_amount }}</strong></dd>
+      <dt>状态</dt><dd><span class="badge badge-{{ prescription.status }}">{{ prescription.get_status_display }}</span></dd>
+      <dt>开方时间</dt><dd>{{ prescription.created_at|date:'Y-m-d H:i' }}</dd>
+      {% if prescription.payment_time %}<dt>支付时间</dt><dd>{{ prescription.payment_time|date:'Y-m-d H:i' }}</dd>{% endif %}
+      {% if prescription.pharmacist %}<dt>发药药剂师</dt><dd>{{ prescription.pharmacist.full_name }}</dd>{% endif %}
+      {% if prescription.dispense_time %}<dt>发药时间</dt><dd>{{ prescription.dispense_time|date:'Y-m-d H:i' }}</dd>{% endif %}
+      {% if prescription.note %}<dt>备注</dt><dd class="text-warning">{{ prescription.note }}</dd>{% endif %}
+    </dl>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">处方明细</div>
+  <div class="card-body">
+    <table class="hms-table">
+      <thead><tr><th>药品</th><th>规格</th><th>数量</th><th>用法用量</th><th>单价</th><th>小计</th></tr></thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.medicine.name }}</td>
+          <td>{{ item.medicine.specification }}</td>
+          <td>{{ item.quantity }}</td>
+          <td>{{ item.dosage }}</td>
+          <td>¥{{ item.unit_price }}</td>
+          <td>¥{{ item.subtotal }}</td>
+        </tr>
+        {% empty %}<tr><td colspan="6" class="text-muted">无明细</td></tr>{% endfor %}
+      </tbody>
+      <tfoot><tr><td colspan="5" class="text-right"><strong>合计</strong></td><td><strong>¥{{ prescription.total_amount }}</strong></td></tr></tfoot>
+    </table>
+  </div>
+</div>
+{% endblock %}

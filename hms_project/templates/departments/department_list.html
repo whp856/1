@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}科室管理 - 医院管理系统{% endblock %}
+{% block header %}科室管理{% endblock %}
+{% block header_actions %}
+{% if user.is_admin %}<a href="{% url 'department_create' %}" class="btn btn-primary">+ 新建科室</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <table class="hms-table">
+      <thead><tr><th>科室名称</th><th>描述</th><th>创建时间</th>{% if user.is_admin %}<th>操作</th>{% endif %}</tr></thead>
+      <tbody>
+        {% for dept in departments %}
+        <tr>
+          <td><strong>{{ dept.name }}</strong></td>
+          <td>{{ dept.description|default:'-' }}</td>
+          <td>{{ dept.created_at|date:'Y-m-d' }}</td>
+          {% if user.is_admin %}
+          <td class="actions">
+            <a href="{% url 'department_edit' dept.pk %}" class="btn btn-sm btn-secondary">编辑</a>
+            <form method="post" action="{% url 'department_delete' dept.pk %}" style="display:inline" onsubmit="return confirm('确认删除科室「{{ dept.name }}」?')">
+              {% csrf_token %}<button type="submit" class="btn btn-sm btn-danger">删除</button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-center text-muted">暂无科室数据</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}护理工作台 - 医院管理系统{% endblock %}
+{% block header %}护理工作台 ({{ today|date:'Y-m-d' }}){% endblock %}
+
+{% block content %}
+<div class="workbench-layout">
+  <div class="wb-sidebar">
+    <div class="card">
+      <div class="card-header">{{ user.department.name|default:'全部' }} 今日患者</div>
+      <div class="card-body wb-patient-list">
+        {% for apt in department_patients %}
+        <a href="?appointment_id={{ apt.id }}" class="wb-patient-item {% if current_appointment and current_appointment.id == apt.id %}active{% endif %}">
+          <div>
+            <div class="wb-patient-name">{{ apt.patient.name }}</div>
+            <div class="wb-patient-meta">医生: {{ apt.doctor.full_name }} | {{ apt.appointment_time|time:'H:i' }}</div>
+          </div>
+        </a>
+        {% empty %}
+        <p class="text-muted" style="padding:16px;">暂无患者</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="wb-content">
+    {% if current_appointment %}
+    <div class="card">
+      <div class="card-header">患者: {{ current_appointment.patient.name }}</div>
+      <div class="card-body">
+        <form method="post" action="{% url 'nursing_record_save' current_appointment.id %}" class="hms-form">
+          {% csrf_token %}
+          <div class="form-row">
+            <div class="form-group">
+              <label for="{{ nursing_form.temperature.id_for_label }}">{{ nursing_form.temperature.label }}</label>
+              {{ nursing_form.temperature }}
+            </div>
+            <div class="form-group">
+              <label for="{{ nursing_form.blood_pressure.id_for_label }}">{{ nursing_form.blood_pressure.label }}</label>
+              {{ nursing_form.blood_pressure }}
+            </div>
+            <div class="form-group">
+              <label for="{{ nursing_form.heart_rate.id_for_label }}">{{ nursing_form.heart_rate.label }}</label>
+              {{ nursing_form.heart_rate }}
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="{{ nursing_form.medical_order.id_for_label }}">{{ nursing_form.medical_order.label }}</label>
+            {{ nursing_form.medical_order }}
+          </div>
+          <div class="form-group">
+            <label for="{{ nursing_form.note.id_for_label }}">{{ nursing_form.note.label }}</label>
+            {{ nursing_form.note }}
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">💾 保存护理记录</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% if existing_records %}
+    <div class="card">
+      <div class="card-header">历史护理记录</div>
+      <div class="card-body">
+        <table class="hms-table compact">
+          <thead><tr><th>时间</th><th>体温</th><th>血压</th><th>心率</th><th>医嘱</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            {% for rec in existing_records %}
+            <tr>
+              <td>{{ rec.created_at|date:'H:i' }}</td>
+              <td>{{ rec.temperature|default:'-' }}</td>
+              <td>{{ rec.blood_pressure|default:'-' }}</td>
+              <td>{{ rec.heart_rate|default:'-' }}</td>
+              <td>{{ rec.medical_order|truncatechars:30 }}</td>
+              <td><span class="badge badge-{{ rec.execution_status }}">{{ rec.get_execution_status_display }}</span></td>
+              <td>
+                {% if rec.execution_status == 'pending' %}
+                <a href="{% url 'nursing_record_execute' rec.id %}" class="btn btn-sm btn-success">标记已执行</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">👈 请从左侧列表选择患者进行护理记录</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

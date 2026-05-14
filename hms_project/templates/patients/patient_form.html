@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }} - 医院管理系统{% endblock %}
+{% block header %}{{ action }}{% endblock %}
+{% block content %}
+<div class="card form-card">
+  <div class="card-body">
+    <form method="post" class="hms-form" novalidate>
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.id_card.id_for_label }}">{{ form.id_card.label }} <span class="required">*</span></label>
+          {{ form.id_card }}
+          {% if form.id_card.errors %}<span class="field-error">{{ form.id_card.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.name.id_for_label }}">{{ form.name.label }} <span class="required">*</span></label>
+          {{ form.name }}
+          {% if form.name.errors %}<span class="field-error">{{ form.name.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.gender.id_for_label }}">{{ form.gender.label }} <span class="required">*</span></label>
+          {{ form.gender }}
+          {% if form.gender.errors %}<span class="field-error">{{ form.gender.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.age.id_for_label }}">{{ form.age.label }} <span class="required">*</span></label>
+          {{ form.age }}
+          {% if form.age.errors %}<span class="field-error">{{ form.age.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }} <span class="required">*</span></label>
+          {{ form.phone }}
+          {% if form.phone.errors %}<span class="field-error">{{ form.phone.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="{{ form.allergy_history.id_for_label }}">{{ form.allergy_history.label }}</label>
+        {{ form.allergy_history }}
+        {% if form.allergy_history.errors %}<span class="field-error">{{ form.allergy_history.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="{% url 'patient_list' %}" class="btn btn-secondary">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

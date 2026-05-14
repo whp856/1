@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}挂号详情 #{{ appointment.id }} - 医院管理系统{% endblock %}
+{% block header %}挂号详情 #{{ appointment.id }}{% endblock %}
+{% block header_actions %}<a href="{% url 'appointment_list' %}" class="btn btn-secondary">返回列表</a>{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <dl class="info-list">
+      <dt>挂号单号</dt><dd>#{{ appointment.id }}</dd>
+      <dt>患者</dt><dd><a href="{% url 'patient_detail' appointment.patient_id %}">{{ appointment.patient.name }}</a></dd>
+      <dt>科室</dt><dd>{{ appointment.department.name }}</dd>
+      <dt>医生</dt><dd>{{ appointment.doctor.full_name }}</dd>
+      <dt>就诊日期</dt><dd>{{ appointment.appointment_date|date:'Y-m-d' }}</dd>
+      <dt>就诊时段</dt><dd>{{ appointment.appointment_time|time:'H:i' }}</dd>
+      <dt>状态</dt><dd><span class="badge badge-{{ appointment.status }}">{{ appointment.get_status_display }}</span></dd>
+      <dt>挂号费</dt><dd>¥{{ appointment.fee }}</dd>
+      <dt>支付状态</dt><dd>{{ appointment.payment_status|yesno:'已支付,未支付' }} {% if appointment.payment_method %}({{ appointment.get_payment_method_display }}){% endif %}</dd>
+      <dt>挂号时间</dt><dd>{{ appointment.created_at|date:'Y-m-d H:i' }}</dd>
+    </dl>
+  </div>
+</div>
+
+{% if appointment.medical_record %}
+<div class="card">
+  <div class="card-header">电子病历</div>
+  <div class="card-body">
+    <div><strong>主诉:</strong> {{ appointment.medical_record.chief_complaint }}</div>
+    <div><strong>诊断:</strong> {{ appointment.medical_record.diagnosis }}</div>
+    {% if appointment.medical_record.treatment_plan %}<div><strong>治疗方案:</strong> {{ appointment.medical_record.treatment_plan }}</div>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if appointment.prescription %}
+<div class="card">
+  <div class="card-header">处方 <a href="{% url 'prescription_detail' appointment.prescription.pk %}" class="btn btn-sm btn-secondary">查看详情</a></div>
+  <div class="card-body">
+    <div>状态: <span class="badge badge-{{ appointment.prescription.status }}">{{ appointment.prescription.get_status_display }}</span></div>
+    <div>总金额: ¥{{ appointment.prescription.total_amount }}</div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

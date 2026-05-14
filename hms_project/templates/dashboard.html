@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}工作台 - 医院管理系统{% endblock %}
+{% block header %}工作台{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#E8F3FF;color:#165DFF;">📋</div>
+      <div class="stat-info">
+        <div class="stat-value">{{ today_pending_count|default:0 }}</div>
+        <div class="stat-label">待处理</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#E8FFEA;color:#00B42A;">✅</div>
+      <div class="stat-info">
+        <div class="stat-value">{{ today_completed_count|default:0 }}</div>
+        <div class="stat-label">已完成</div>
+      </div>
+    </div>
+    {% if user.is_admin %}
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#FFF7E8;color:#FF7D00;">💰</div>
+      <div class="stat-info">
+        <div class="stat-value">¥{{ today_income|default:0 }}</div>
+        <div class="stat-label">今日收入</div>
+      </div>
+    </div>
+    {% endif %}
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#FFE8E8;color:#F53F3F;">⭐</div>
+      <div class="stat-info">
+        <div class="stat-value">{{ today_appointment_count|default:0 }}</div>
+        <div class="stat-label">今日挂号</div>
+      </div>
+    </div>
+  </div>
+
+  {% if user.is_admin %}
+  <div class="card-row">
+    <div class="card">
+      <div class="card-header">库存预警</div>
+      <div class="card-body">
+        {% if low_stock_medicines %}
+        <table class="hms-table compact">
+          <thead><tr><th>药品</th><th>库存</th><th>预警</th></tr></thead>
+          <tbody>
+          {% for m in low_stock_medicines %}
+          <tr><td>{{ m.name }}</td><td class="text-danger">{{ m.stock_quantity }}</td><td>{{ m.warning_stock }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}<p class="text-muted">暂无库存预警</p>{% endif %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">即将过期药品</div>
+      <div class="card-body">
+        {% if expiring_medicines %}
+        <table class="hms-table compact">
+          <thead><tr><th>药品</th><th>有效期</th></tr></thead>
+          <tbody>
+          {% for m in expiring_medicines %}
+          <tr><td>{{ m.name }}</td><td class="text-warning">{{ m.expiry_date|date:'Y-m-d' }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}<p class="text-muted">暂无即将过期药品</p>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if user.is_doctor and pending_patients %}
+  <div class="card">
+    <div class="card-header">今日待接诊患者 ({{ pending_patients|length }})</div>
+    <div class="card-body">
+      <table class="hms-table">
+        <thead><tr><th>序号</th><th>患者</th><th>时段</th><th>操作</th></tr></thead>
+        <tbody>
+        {% for apt in pending_patients %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ apt.patient.name }} ({{ apt.patient.gender }} / {{ apt.patient.age }}岁)</td>
+          <td>{{ apt.appointment_time|time:'H:i' }}</td>
+          <td><a href="{% url 'doctor_workbench' %}?appointment_id={{ apt.id }}" class="btn btn-sm btn-primary">接诊</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if user.is_nurse and department_patients %}
+  <div class="card">
+    <div class="card-header">{{ user.department.name|default:'全部' }} 今日患者</div>
+    <div class="card-body">
+      <table class="hms-table">
+        <thead><tr><th>患者</th><th>医生</th><th>时段</th><th>操作</th></tr></thead>
+        <tbody>
+        {% for apt in department_patients %}
+        <tr>
+          <td>{{ apt.patient.name }}</td>
+          <td>{{ apt.doctor.full_name }}</td>
+          <td>{{ apt.appointment_time|time:'H:i' }}</td>
+          <td><a href="{% url 'nurse_workbench' %}?appointment_id={{ apt.id }}" class="btn btn-sm btn-primary">护理</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if user.is_pharmacist and pending_dispense %}
+  <div class="card">
+    <div class="card-header">待发药处方 ({{ pending_dispense|length }})</div>
+    <div class="card-body">
+      <table class="hms-table">
+        <thead><tr><th>处方号</th><th>患者</th><th>金额</th><th>操作</th></tr></thead>
+        <tbody>
+        {% for p in pending_dispense %}
+        <tr>
+          <td>#{{ p.id }}</td><td>{{ p.patient.name }}</td><td>¥{{ p.total_amount }}</td>
+          <td><a href="{% url 'dispense_workbench' %}?prescription_id={{ p.id }}" class="btn btn-sm btn-primary">发药</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

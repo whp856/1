@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}数据看板 - 医院管理系统{% endblock %}
+{% block header %}数据看板 ({{ today|date:'Y-m-d' }}){% endblock %}
+
+{% block content %}
+<div class="dashboard">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-icon" style="background:#E8F3FF;color:#165DFF;">📋</div><div class="stat-info"><div class="stat-value">{{ today_appointment_count }}</div><div class="stat-label">今日挂号</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#E8FFEA;color:#00B42A;">✅</div><div class="stat-info"><div class="stat-value">{{ today_completed }}</div><div class="stat-label">今日就诊</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#FFF7E8;color:#FF7D00;">⏳</div><div class="stat-info"><div class="stat-value">{{ today_pending }}</div><div class="stat-label">待就诊</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:#FFE8E8;color:#F53F3F;">💰</div><div class="stat-info"><div class="stat-value">¥{{ today_income }}</div><div class="stat-label">今日收入</div></div></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-info"><div class="stat-value">¥{{ today_registration_income }}</div><div class="stat-label">挂号收入</div></div></div>
+    <div class="stat-card"><div class="stat-info"><div class="stat-value">¥{{ today_prescription_income }}</div><div class="stat-label">药品收入</div></div></div>
+    <div class="stat-card"><div class="stat-info"><div class="stat-value">{{ week_appointments }}</div><div class="stat-label">本周挂号</div></div></div>
+    <div class="stat-card"><div class="stat-info"><div class="stat-value">{{ total_patients }}</div><div class="stat-label">累计患者</div></div></div>
+  </div>
+
+  <div class="card-row">
+    <div class="card">
+      <div class="card-header">热门科室 Top5</div>
+      <div class="card-body">
+        {% for d in dept_rank %}
+        <div class="rank-item"><span class="rank-num">{{ forloop.counter }}</span><span>{{ d.department__name }}</span><span class="rank-value">{{ d.count }}人</span></div>
+        {% empty %}<p class="text-muted">暂无数据</p>{% endfor %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">热门医生 Top5</div>
+      <div class="card-body">
+        {% for d in doctor_rank %}
+        <div class="rank-item"><span class="rank-num">{{ forloop.counter }}</span><span>{{ d.doctor__full_name }}</span><span class="rank-value">{{ d.count }}人</span></div>
+        {% empty %}<p class="text-muted">暂无数据</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card-row">
+    <div class="card alert-card">
+      <div class="card-header">⚠ 库存预警</div>
+      <div class="card-body"><div class="alert-value text-danger">{{ low_stock_count }}</div><div class="alert-label">种药品库存不足</div></div>
+    </div>
+    <div class="card alert-card">
+      <div class="card-header">⏰ 即将过期</div>
+      <div class="card-body"><div class="alert-value text-warning">{{ expiring_count }}</div><div class="alert-label">种药品30天内过期</div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

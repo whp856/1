@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}叫号队列 - 医院管理系统{% endblock %}
+{% block header %}叫号队列 ({{ today|date:'Y-m-d' }}){% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    {% if pending_patients %}
+    <table class="hms-table">
+      <thead><tr><th>序号</th><th>患者</th><th>年龄</th><th>时段</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for apt in pending_patients %}
+        <tr class="{% if forloop.first %}queue-current{% endif %}">
+          <td><span class="queue-num">{{ forloop.counter }}</span></td>
+          <td>{{ apt.patient.name }} ({{ apt.patient.get_gender_display }})</td>
+          <td>{{ apt.patient.age }}岁</td>
+          <td>{{ apt.appointment_time|time:'H:i' }}</td>
+          <td><a href="{% url 'doctor_workbench' %}?appointment_id={{ apt.id }}" class="btn btn-primary">接诊</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">🎉 今日暂无待接诊患者</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

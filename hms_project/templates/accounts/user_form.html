@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}{{ action }}用户 - 医院管理系统{% endblock %}
+{% block header %}{{ action }}用户{% endblock %}
+
+{% block content %}
+<div class="card form-card">
+  <div class="card-body">
+    <form method="post" class="hms-form" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="form-error">{{ form.non_field_errors.0 }}</div>
+      {% endif %}
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.username.id_for_label }}">{{ form.username.label }} <span class="required">*</span></label>
+          {{ form.username }}
+          {% if form.username.errors %}<span class="field-error">{{ form.username.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.full_name.id_for_label }}">{{ form.full_name.label }} <span class="required">*</span></label>
+          {{ form.full_name }}
+          {% if form.full_name.errors %}<span class="field-error">{{ form.full_name.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.role.id_for_label }}">{{ form.role.label }} <span class="required">*</span></label>
+          {{ form.role }}
+          {% if form.role.errors %}<span class="field-error">{{ form.role.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+          {{ form.department }}
+          {% if form.department.errors %}<span class="field-error">{{ form.department.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+          {{ form.phone }}
+          {% if form.phone.errors %}<span class="field-error">{{ form.phone.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          {% if form.password %}
+          <label for="{{ form.password.id_for_label }}">{{ form.password.label }} <span class="required">*</span></label>
+          {{ form.password }}
+          {% if form.password.errors %}<span class="field-error">{{ form.password.errors.0 }}</span>{% endif %}
+          {% endif %}
+          {% if form.new_password %}
+          <label for="{{ form.new_password.id_for_label }}">{{ form.new_password.label }}</label>
+          {{ form.new_password }}
+          {% if form.new_password.errors %}<span class="field-error">{{ form.new_password.errors.0 }}</span>{% endif %}
+          {% endif %}
+        </div>
+      </div>
+      {% if form.password_confirm %}
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.password_confirm.id_for_label }}">{{ form.password_confirm.label }} <span class="required">*</span></label>
+          {{ form.password_confirm }}
+          {% if form.password_confirm.errors %}<span class="field-error">{{ form.password_confirm.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% if form.is_active %}
+      <div class="form-row">
+        <div class="form-group checkbox-group">
+          {{ form.is_active }}
+          <label for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+        </div>
+      </div>
+      {% endif %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="{% url 'user_list' %}" class="btn btn-secondary">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

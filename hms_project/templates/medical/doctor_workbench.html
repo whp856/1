@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}诊疗工作台 - 医院管理系统{% endblock %}
+{% block header %}诊疗工作台 ({{ today|date:'Y-m-d' }}){% endblock %}
+
+{% block content %}
+<div class="workbench-layout">
+  <div class="wb-sidebar">
+    <div class="card">
+      <div class="card-header">待接诊患者 ({{ pending_patients|length }})</div>
+      <div class="card-body wb-patient-list">
+        {% for apt in pending_patients %}
+        <a href="?appointment_id={{ apt.id }}" class="wb-patient-item {% if current_appointment and current_appointment.id == apt.id %}active{% endif %}">
+          <span class="queue-num small">{{ forloop.counter }}</span>
+          <div>
+            <div class="wb-patient-name">{{ apt.patient.name }}</div>
+            <div class="wb-patient-meta">{{ apt.patient.get_gender_display }} {{ apt.patient.age }}岁 | {{ apt.appointment_time|time:'H:i' }}</div>
+          </div>
+        </a>
+        {% empty %}
+        <p class="text-muted" style="padding:16px;">暂无待接诊患者</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="wb-content">
+    {% if current_appointment %}
+    <div class="card">
+      <div class="card-header">患者: {{ current_appointment.patient.name }} | 挂号单 #{{ current_appointment.id }}</div>
+      <div class="card-body">
+        {% if current_appointment.patient.allergy_history %}
+        <div class="alert alert-warning">⚠ 过敏史: {{ current_appointment.patient.allergy_history }}</div>
+        {% endif %}
+
+        {% if history_records %}
+        <details class="history-records">
+          <summary>历史诊疗记录 ({{ history_records|length }}条)</summary>
+          {% for rec in history_records %}
+          <div class="record-item">
+            <div class="record-header">{{ rec.created_at|date:'Y-m-d' }} | 医生: {{ rec.doctor.full_name }}</div>
+            <div>诊断: {{ rec.diagnosis }}</div>
+          </div>
+          {% endfor %}
+        </details>
+        {% endif %}
+
+        <form method="post" action="{% url 'medical_record_save' current_appointment.id %}" class="hms-form">
+          {% csrf_token %}
+          {% for field in medical_form %}
+          <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }} <span class="required">*</span></label>
+            {{ field }}
+            {% if field.errors %}<span class="field-error">{{ field.errors.0 }}</span>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">💾 保存病历并完成就诊</button>
+            <a href="{% url 'prescription_create' current_appointment.id %}" class="btn btn-secondary">💊 开具处方</a>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">👈 请从左侧列表选择患者开始接诊</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

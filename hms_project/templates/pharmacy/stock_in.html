@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}药品入库 - 医院管理系统{% endblock %}
+{% block header %}药品入库{% endblock %}
+{% block content %}
+<div class="card form-card"><div class="card-body">
+<form method="post" class="hms-form" novalidate>{% csrf_token %}
+{% for field in form %}
+<div class="form-group">
+<label for="{{ field.id_for_label }}">{{ field.label }} <span class="required">*</span></label>
+{{ field }}{% if field.errors %}<span class="field-error">{{ field.errors.0 }}</span>{% endif %}
+</div>{% endfor %}
+<div class="form-actions">
+<button type="submit" class="btn btn-primary">确认入库</button>
+<a href="{% url 'stock_in_list' %}" class="btn btn-secondary">取消</a>
+</div></form>
+</div></div>
+{% endblock %}
